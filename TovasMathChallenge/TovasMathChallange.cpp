@@ -4,15 +4,18 @@
 // TODO
 // Write Leaderboard if user has a place in top 3.
 // Read Leaderboard result
+// Adding new agelevels should rewrite file
 
 #include <iostream>
-#include <string.h>
+#include <string>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <chrono>
 #include <iomanip>
 #include <vector>
+#include <fstream>
+
 
 using namespace std;
 using namespace chrono;
@@ -20,18 +23,36 @@ using namespace chrono;
 int MAX_LEVELS = 10U; // This could be extracted from vector
 int LEVEL_CHECKS = 5U; // This could be age based
 
+const bool DEBUG = false; // When we debug set this to true
+
 vector<vector<double>> levelMaxTime{
 		{10.0F, 9.5F, 9.0F, 8.5F, 7.0F, 7.0F, 7.0F, 7.0F, 6.0F, 6.0F}, // Age 0 - 10 years
 		{10.0F, 9.5F, 9.0F, 8.5F, 7.0F, 6.0F, 6.0F, 5.0F, 5.0F, 5.0F}, // Age 11 - 20 years
 		{10.0F, 9.5F, 8.0F, 7.0F, 6.0F, 5.0F, 5.0F, 5.0F, 5.0F, 4.0F}, // Age 21 - 30 years
 		{10.0F, 9.5F, 8.0F, 7.0F, 6.0F, 5.0F, 5.0F, 4.5F, 4.5F, 4.5F}, // Age 31 - 40 years
-		{10.0F, 9.5F, 8.0F, 7.0F, 6.0F, 5.0F, 4.0F, 4.0F, 4.0F, 4.0F}  // Age 40+
+		{10.0F, 9.5F, 8.0F, 7.0F, 6.0F, 5.0F, 4.0F, 4.0F, 4.0F, 4.0F}  // Age 40 - 120 years.
 		};
 
-void gameHeader(){
+vector<vector<int>> ageLevels {
+	{1, 9},
+	{10, 19},
+	{20, 29},
+	{30, 39},
+	{40, 120}
+	};
+
+void gameHeader()
+{
 	cout << "\n===============================\n";
 	cout << "  This is Tovas Math Challenge";
 	cout << "\n===============================\n";
+}
+
+void leaderBoardHeader()
+{
+	cout << "\n==============================\n";
+	cout << "           SCORE BOARD";
+	cout << "\n==============================\n";
 }
 
 void writeResult()
@@ -39,9 +60,38 @@ void writeResult()
 	// function to write the result if it was good enough.
 }
 
-void readResult()
+void readResult(string fileName)
 {
-	// function to read the highscore results
+	// //function to read the highscore results
+	// int i = 0;
+	// ifstream file(fileName);
+	// if (file.is_open()) {
+	// 	string line;
+	// 		// using printf() in all tests for consistency
+	// 		getline(file, line);
+	// 		printf("%s", line.c_str());
+	// 		i++;
+	// 	}
+	// 	file.close();
+	// }
+}
+
+int createScoreFile(string filename)
+{
+	// This function should create the leaderboard file if it's not yet created.
+	if (ifstream(filename))
+	{
+		return true;
+	}
+	ofstream file(filename); // create  file
+	if (!file)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 void clearScreen()
@@ -96,31 +146,18 @@ int askAdditionQuestion(int val1, int val2, int addition)
 	return retVal;
 }
 
-int ageSelector(int age)
+int ageSelector(int age, vector<vector<int>> ageLevels)
 {
-	if (age <= 9)
+	int minAge = 0;
+	int maxAge = 0;
+	for ( size_t ageLevel = 0; ageLevel < ageLevels.size(); ++ageLevel )
 	{
-		return 0;
-	}
-	else if (age <= 19 && age >= 10)
-	{
-		return 1;
-	}
-	else if (age <= 29 && age >= 20)
-	{
-		return 2;
-	}
-	else if (age <= 39 && age >= 30)
-	{
-		return 3;
-	}
-	else if (age >= 40)
-	{
-		return 4;
-	}
-	else
-	{
-		return -1; // exception handling.
+		minAge = ageLevels[ageLevel][0];
+		maxAge = ageLevels[ageLevel][1];
+		if (age >= minAge && age <=maxAge)
+		{
+			return ageLevel;
+		}
 	}
 }
 
@@ -186,11 +223,16 @@ int main() {
 	string firstName;
 	char playAgain = {'N'};
 	bool quit = false;
+	string filename = "tovasScores.sb";
 
 	std::cout << std::fixed << std::setprecision(1); // set precision of float to 1 digit
 
 	/* initialize random seed: */
     srand (time(NULL));
+
+	// Create ScoreFile //
+	int fileCreated = 0;
+	fileCreated  = createScoreFile(filename);
 
 	while (!quit)
 	{
@@ -205,13 +247,17 @@ int main() {
 
 		cout << "Welcome " << firstName << endl;
 
-		if (age == 0) // Not set to the initialization value
+		if (age == 0 && DEBUG == false) // Not set to the initialization value
 		{
 			age = get_age();
 		}
+		else
+		{
+			age = 120;
+		}
 
 		int ageLevel = {0};
-		ageLevel = ageSelector(age); // get the level bases on the age.
+		ageLevel = ageSelector(age, ageLevels); // get the level based on the age.
 		cout << ageLevel;
 		for (int timeLevel = 0; timeLevel < MAX_LEVELS; timeLevel++)
 		{
