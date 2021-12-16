@@ -2,10 +2,9 @@
 // Created by Ulf Hillbom
 
 // TODO
-// Output continues score
-// Nicer scoreboard
 // Break out inte .h
 // fix that the answer of the math is validated to numbers.
+// global padding const of visualization.
 
 #include <iostream>
 #include <string>
@@ -26,6 +25,7 @@ using namespace std::this_thread;     // sleep_for, sleep_until
 
 const int LEVEL_CHECKS = 5U; // This could be age based
 const bool DEBUG = false; // When we debug set this to true
+const int PADDING = 4U; // the padding of the game.
 
 class Player
 {
@@ -64,7 +64,7 @@ class Player
 
 	std::string getPlayerId()
 	{
-		return pID;
+		return this->pID;
 	}
 
 	void setPlayerId(int ID)
@@ -79,7 +79,7 @@ class Player
 
 	std::string getPlayerScore()
 	{
-		return pScore;
+		return this->pScore;
 	}
 
 	void setPlayerName(std::vector<Player> & pv)
@@ -88,20 +88,25 @@ class Player
 		std::string firstName;
 		while(!validName)
 		{
-			std::cout << "Hello, what is your Name: ";
+			std::cout << "    Hello, what is your Name: ";
 			std::cin >> firstName; // get user input from the keyboard
 			if(!validateString(firstName))
 			{
-				std::cout << "Wrong input" << std::endl;
+				std::cout << "    Wrong input" << std::endl;
 				std::cin.clear();
 			}
 			else
 			{
-				if (nameInVec(pv, firstName))
-					validName = true;
+				validName = true;
+				break;
 			}
 		}
 		pName = firstName;
+	}
+
+	std::string getPlayerName()
+	{
+		return this->pName;
 	}
 
 	void setPlayerAge()
@@ -109,11 +114,11 @@ class Player
 		int input;
 		bool valid = false;
 		while(! valid){ // repeat as long as the input is not valid
-			std::cout << "Enter your age: " ;
+			std::cout << "    Enter your age: " ;
 			std::cin >> input;
 			if(std::cin.fail() || input <= 0 || input > 120 ) // for exceptions validate age 0 to fail since that is the init value of age.
 			{
-				std::cout << "Wrong input, expect value between 1 - 120 years. " << std::endl;
+				std::cout << "    Wrong input, expect value between 1 - 120 years. " << std::endl;
 				// clear error flags
 				std::cin.clear();
 			}
@@ -125,6 +130,11 @@ class Player
 		pAge = std::to_string(input);
 	}
 
+	std::string getPlayerAge()
+	{
+		return this->pAge;
+	}
+
 	bool validateString(const std::string& s)
 	{
 		for (const char c : s) {
@@ -133,17 +143,6 @@ class Player
 		}
 
 		return true;
-	}
-
-	bool nameInVec(std::vector<Player> &pv, std::string name)
-	{
-		bool found = false;
-		auto name_exist = [&name](const Player& obj) {return obj.pName == name;}; // lambda
-		auto it = std::find_if(pv.begin(), pv.end(), name_exist);
-		(it != std::end(pv))
-			? found = true
-			: found = false;
-		return found;
 	}
 
 };
@@ -182,19 +181,22 @@ void startGame(Player &p);
 void sortPlayersByScore(std::vector<Player> &pv);
 int getNextPlayerId(std::vector<Player> &pv);
 bool validateString(const std::string& s);
+Player searchPlayerInVector(std::vector<Player> &pv, std::string name);
 
 // menu
 int DisplayMainMenu();
+void DisplayCurrentPlayer(Player &p);
 
 int main() {
 	Player thisPlayer;
 	int nextId = 0;
 	std::cout << std::fixed << std::setprecision(1); // set precision of float to 1 digit
 
-	clearScreen();
-
 	while(1)
 	{
+		// Display current player info
+		DisplayCurrentPlayer(thisPlayer);
+
 		// Display Main Menu
 		int selection = DisplayMainMenu();
 		//int selection = 1;
@@ -203,13 +205,26 @@ int main() {
 		std::vector<Player> players;
 		players = readPlayersToVec();
 
+		Player tmpPlayerObj;
+
 		switch(selection) {
 			case 1:
 				{
 					thisPlayer.setPlayerName(players);
 					thisPlayer.setPlayerAge();
-					nextId = getNextPlayerId(players);
-					thisPlayer.setPlayerId(nextId);
+					// Check if this player allready exists.
+					tmpPlayerObj = searchPlayerInVector(players, thisPlayer.getPlayerName());
+					if (tmpPlayerObj.getPlayerId() == "")
+					{
+						// the NameInVec returned a none set Player Id means that player does not exist previously.
+						nextId = getNextPlayerId(players);
+						thisPlayer.setPlayerId(nextId);
+					}
+					else
+					{
+						// Player allready exists. Set the player ID to the existing one.
+						thisPlayer.setPlayerId(std::stoi(tmpPlayerObj.getPlayerId()));
+					}
 					break;
 				}
 			case 2:
@@ -265,8 +280,9 @@ void startGame(Player &p)
 			if(timeLevel > 0)
 				clearScreen();
 
-			std::cout << "\nLevel " << timeLevel << " of totally " << MAX_LEVELS << " max time to answer is " << levelMaxTime.at(ageLevel).at(timeLevel) << "\n";
-			std::cout << "Question comes in 5 seconds..." << std::endl;
+			std::cout << "\n   Your score " << p.getPlayerName() << " is " << std::to_string(score);
+			std::cout << "\n   Level " << timeLevel << " of totally " << MAX_LEVELS << " max time to answer is " << levelMaxTime.at(ageLevel).at(timeLevel);
+			std::cout << "\n   Question comes in 5 seconds..." << std::endl;
 			sleep_for(5s);
 
 			for (int i = 0; i < LEVEL_CHECKS; i++)
@@ -291,21 +307,21 @@ void startGame(Player &p)
 				score += levelMaxTime.at(ageLevel).at(timeLevel) - waitTime;
 				if (expectedAns == answer &&  waitTime <= levelMaxTime.at(ageLevel).at(timeLevel))
 				{
-					std::cout << "Correct!\n";
-					std::cout << "Time was " << waitTime << " seconds \n";
+					std::cout << "    Correct!\n";
+					std::cout << "    Time was " << waitTime << " seconds \n";
 				}
 				else if (waitTime > levelMaxTime.at(ageLevel).at(timeLevel))
 				{
-					std::cout << "You were to slow!\n";
-					std::cout << "Correct answer is " << expectedAns << "\n";
-					std::cout << "Time was " << waitTime << " seconds \n";
+					std::cout << "    You were to slow!\n";
+					std::cout << "    Correct answer is " << expectedAns << "\n";
+					std::cout << "    Time was " << waitTime << " seconds \n";
 					wrongAnswer = true;
 					break;
 				}
 				else
 				{
-					std::cout << "Not Correct!\n";
-					std::cout << "Correct answer is " << expectedAns;
+					std::cout << "    Not Correct!\n";
+					std::cout << "    Correct answer is " << expectedAns;
 					wrongAnswer = true;
 					break;
 				}
@@ -313,7 +329,7 @@ void startGame(Player &p)
 		}
 		else
 		{
-			std::cout << "\nYou came to level " << timeLevel-1 << "\n";
+			std::cout << "\n    You came to level " << timeLevel-1 << "\n";
 			wrongAnswer = false;
 			wait_on_enter();
 			break;
@@ -321,37 +337,53 @@ void startGame(Player &p)
 	}
 	p.setPlayerScore(score); // sets score.
 	writeHighScore(p);
+	p.setPlayerScore(0.0); // reset the score for next game event.
 	return;
 }
 
 int DisplayMainMenu()
 {
-    std::cout << "Welcome to the math game Tovas Math Challenge" << std::endl;
-    std::cout << "___________________________________________" << std::endl;
-    std::cout << "1. Set Player Name" << std::endl;
-    std::cout << "2. See the highscores" << std::endl;
-	std::cout << "3. Start game" << std::endl;
-	std::cout << "___________________________________________" << std::endl;
-    std::cout << "5. Exit" << std::endl;
-    std::cout << "___________________________________________" << std::endl;
-    std::cout << "Enter your Selection: " << std::endl;
+	std::cout << "                                               " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+    std::cout << "        Welcome to Tovas Math Challenge        " << std::endl;
+    std::cout << "    ###########################################" << std::endl;
+    std::cout << "      1. Change player" << std::endl;
+    std::cout << "      2. See the highscores" << std::endl;
+	std::cout << "      3. Start game" << std::endl;
+	std::cout << "    ___________________________________________" << std::endl;
+    std::cout << "      5. Exit" << std::endl;
+    std::cout << "    ###########################################" << std::endl;
+    std::cout << "    Enter your Selection: ";
     int m = -1;
     std::cin >> m;
     return m;
 }
 
+void DisplayCurrentPlayer(Player &p)
+{
+	clearScreen();
+	std::cout << "                                               " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+    std::cout << "        Player Information                     " << std::endl;
+    std::cout << "    ###########################################" << std::endl;
+    std::cout << "      Name: " << p.getPlayerName() << std::endl;
+    std::cout << "      Age: " << p.getPlayerAge() << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+    std::cout << "                                               " << std::endl;
+}
+
 void gameHeader()
 {
-	std::cout << "\n===============================\n";
-	std::cout << "   This is Tovas Math Challenge";
-	std::cout << "\n===============================\n";
+	std::cout << "\n    ===============================\n";
+	std::cout << "       This is Tovas Math Challenge";
+	std::cout << "\n    ===============================\n";
 }
 
 void leaderBoardHeader()
 {
-	std::cout << "\n==============================\n";
-	std::cout << "        TOP 10 SCORE BOARD";
-	std::cout << "\n==============================\n";
+	std::cout << "\n    ==============================\n";
+	std::cout << "            TOP 10 SCORE BOARD";
+	std::cout << "\n    ==============================\n";
 }
 
 void wait_on_enter()
@@ -359,7 +391,7 @@ void wait_on_enter()
 	std::cin.clear();
 	std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
 	do {
-    std::cout << '\n' << "Press the Enter key to continue.";
+    std::cout << "\n    Press the Enter key to continue.";
     } while (std::cin.get() != '\n');
 }
 
@@ -375,7 +407,7 @@ int getRandValue()
 
 int askMultipleQuestion(int val1, int val2)
 {
-	std::cout << "\nWhat is " << val1 << " * " << val2 << " = ";
+	std::cout << "\n    What is " << val1 << " * " << val2 << " = ";
 	return val1 * val2;
 }
 
@@ -392,12 +424,12 @@ int askAdditionQuestion(int val1, int val2, int addition)
 	}
 	if (add)
 	{
-		std::cout << "\nWhat is " << val1 << " + " << val2 << " = ";
+		std::cout << "\n    What is " << val1 << " + " << val2 << " = ";
 		retVal = val1 + val2;
 	}
 	else
 	{
-		std::cout << "\nWhat is " << val1 << " - " << val2 << " = ";
+		std::cout << "\n    What is " << val1 << " - " << val2 << " = ";
 		retVal = val1 - val2;
 	}
 	return retVal;
@@ -484,7 +516,7 @@ void showScoreBoard(std::vector<Player> &pv, int nums)
 	{
 		for (int i=0; i<iter; i++)
 		{
-			std::cout << pv[i].pName << " " << pv[i].pScore << std::endl;
+			std::cout << "    " << pv[i].pName << " " << pv[i].pScore << std::endl;
 		}
 	}
 	std::cin.clear();
@@ -493,7 +525,22 @@ void showScoreBoard(std::vector<Player> &pv, int nums)
 
 int getNextPlayerId(std::vector<Player> &pv)
 {
-	sortPlayersById(pv);
+	int nextId = 0;
+	if (!pv.empty())
+	{
+		sortPlayersById(pv);
+		nextId = std::stoi(pv[0].pID) + 1U;
+	}
+	return nextId;
+}
 
-	return std::stoi(pv[0].pID) + 1U;
+Player searchPlayerInVector(std::vector<Player> &pv, std::string name)
+{
+	Player tmpPlayer;
+	auto name_exist = [&name](const Player& obj) {return obj.pName == name;}; // lambda
+	auto it = std::find_if(pv.begin(), pv.end(), name_exist);
+	(it != std::end(pv))
+		? tmpPlayer = *it
+		: tmpPlayer = tmpPlayer;
+	return tmpPlayer;
 }
