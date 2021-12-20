@@ -2,7 +2,6 @@
 // Created by Ulf Hillbom
 
 // TODO
-// Break out inte .h
 // fix that the answer of the math is validated to numbers.
 // global padding const of visualization.
 
@@ -19,6 +18,7 @@
 #include <algorithm>
 #include <math.h>
 #include <limits>
+#include "player.h"
 
 using namespace std::chrono;
 using namespace std::this_thread;     // sleep_for, sleep_until
@@ -26,126 +26,6 @@ using namespace std::this_thread;     // sleep_for, sleep_until
 const int LEVEL_CHECKS = 5U; // This could be age based
 const bool DEBUG = false; // When we debug set this to true
 const int PADDING = 4U; // the padding of the game.
-
-class Player
-{
-	public:
-	std::string pID;
-	std::string pScore;
-	std::string pName;
-	std::string pAge;
-
-	Player(std::string id = "", std::string score = "0.0", std::string name = "", std::string age = "0") : pID(id), pScore(score), pName(name), pAge(age)
-	{}
-
-	bool operator==(const Player & obj)
-	{
-		return (pName == obj.pName); //&& (pAge == obj.pAge);
-	}
-	/*
-	* Write the member variables to stream objects
-	*/
-	friend std::ostream & operator << (std::ostream &out, const Player & obj)
-	{
-		out << obj.pID << " " << obj.pName << " " << obj.pAge << " " << obj.pScore << std::endl;
-		return out;
-	}
-	/*
-	* Read data from stream object and fill it in member variables
-	*/
-	friend std::istream & operator >> (std::istream &in,  Player &obj)
-	{
-		in >> obj.pID;
-		in >> obj.pName;
-		in >> obj.pAge;
-		in >> obj.pScore;
-		return in;
-	}
-
-	std::string getPlayerId()
-	{
-		return this->pID;
-	}
-
-	void setPlayerId(int ID)
-	{
-		pID = std::to_string(ID);
-	}
-
-	void setPlayerScore(double score)
-	{
-		pScore = std::to_string(score);
-	}
-
-	std::string getPlayerScore()
-	{
-		return this->pScore;
-	}
-
-	void setPlayerName(std::vector<Player> & pv)
-	{
-		bool validName = false;
-		std::string firstName;
-		while(!validName)
-		{
-			std::cout << "    Hello, what is your Name: ";
-			std::cin >> firstName; // get user input from the keyboard
-			if(!validateString(firstName))
-			{
-				std::cout << "    Wrong input" << std::endl;
-				std::cin.clear();
-			}
-			else
-			{
-				validName = true;
-				break;
-			}
-		}
-		pName = firstName;
-	}
-
-	std::string getPlayerName()
-	{
-		return this->pName;
-	}
-
-	void setPlayerAge()
-	{
-		int input;
-		bool valid = false;
-		while(! valid){ // repeat as long as the input is not valid
-			std::cout << "    Enter your age: " ;
-			std::cin >> input;
-			if(std::cin.fail() || input <= 0 || input > 120 ) // for exceptions validate age 0 to fail since that is the init value of age.
-			{
-				std::cout << "    Wrong input, expect value between 1 - 120 years. " << std::endl;
-				// clear error flags
-				std::cin.clear();
-			}
-			else
-			{
-				valid = true;
-			}
-		}
-		pAge = std::to_string(input);
-	}
-
-	std::string getPlayerAge()
-	{
-		return this->pAge;
-	}
-
-	bool validateString(const std::string& s)
-	{
-		for (const char c : s) {
-			if (!isalpha(c) && !isspace(c))
-				return false;
-		}
-
-		return true;
-	}
-
-};
 
 std::vector<std::vector<double>> levelMaxTime{
 		{10.0F, 9.5F, 9.0F, 8.5F, 7.0F, 7.0F, 7.0F, 7.0F, 6.0F, 6.0F}, // Age 0 - 10 years
@@ -185,14 +65,63 @@ Player searchPlayerInVector(std::vector<Player> &pv, std::string name);
 
 // menu
 int DisplayMainMenu();
+int DisplayFirstMenu();
 void DisplayCurrentPlayer(Player &p);
 
 int main() {
 	Player thisPlayer;
 	int nextId = 0;
 	std::cout << std::fixed << std::setprecision(1); // set precision of float to 1 digit
+	bool firstMenu = true;
 
-	while(1)
+	while(firstMenu)
+	{
+
+		// Display Main Menu
+		int selection = DisplayFirstMenu();
+		//int selection = 1;
+
+		// Get the player list
+		std::vector<Player> players;
+		players = readPlayersToVec();
+
+		Player tmpPlayerObj;
+
+		switch(selection) {
+			case 1:
+				{
+					thisPlayer.setPlayerName(players);
+					thisPlayer.setPlayerAge();
+					// Check if this player allready exists.
+					tmpPlayerObj = searchPlayerInVector(players, thisPlayer.getPlayerName());
+					if (tmpPlayerObj.getPlayerId() == "")
+					{
+						// the NameInVec returned a none set Player Id means that player does not exist previously.
+						nextId = getNextPlayerId(players);
+						thisPlayer.setPlayerId(nextId);
+					}
+					else
+					{
+						// Player allready exists. Set the player ID to the existing one.
+						thisPlayer.setPlayerId(std::stoi(tmpPlayerObj.getPlayerId()));
+					}
+					firstMenu = false;
+					break;
+				}
+			case 2:
+				{
+					clearScreen();
+					showScoreBoard(players,10U);
+					clearScreen();
+					break;
+				}
+			case 5:
+			default:
+			return 0;
+        };
+	}
+
+	while(!firstMenu)
 	{
 		// Display current player info
 		DisplayCurrentPlayer(thisPlayer);
@@ -350,6 +279,23 @@ int DisplayMainMenu()
     std::cout << "      1. Change player" << std::endl;
     std::cout << "      2. See the highscores" << std::endl;
 	std::cout << "      3. Start game" << std::endl;
+	std::cout << "    ___________________________________________" << std::endl;
+    std::cout << "      5. Exit" << std::endl;
+    std::cout << "    ###########################################" << std::endl;
+    std::cout << "    Enter your Selection: ";
+    int m = -1;
+    std::cin >> m;
+    return m;
+}
+
+int DisplayFirstMenu()
+{
+	std::cout << "                                               " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+    std::cout << "        Welcome to Tovas Math Challenge        " << std::endl;
+    std::cout << "    ###########################################" << std::endl;
+    std::cout << "      1. Set player" << std::endl;
+    std::cout << "      2. See the highscores" << std::endl;
 	std::cout << "    ___________________________________________" << std::endl;
     std::cout << "      5. Exit" << std::endl;
     std::cout << "    ###########################################" << std::endl;
