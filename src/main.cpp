@@ -1,9 +1,9 @@
 // Tovas Match Challenge
 // Created by Ulf Hillbom
 
-// TODO
-// fix that the answer of the math is validated to numbers.
-// global padding const of visualization.
+// TODO:
+// Padding of the game to the PADDING const
+// Aligned scoreboard
 
 #include <iostream>
 #include <string>
@@ -64,8 +64,8 @@ bool validateString(const std::string& s);
 Player searchPlayerInVector(std::vector<Player> &pv, std::string name);
 
 // menu
-int DisplayMainMenu();
-int DisplayFirstMenu();
+void DisplayMainMenu();
+void DisplayFirstMenu();
 void DisplayCurrentPlayer(Player &p);
 
 int main() {
@@ -78,7 +78,18 @@ int main() {
 	{
 
 		// Display Main Menu
-		int selection = DisplayFirstMenu();
+		DisplayFirstMenu();
+
+		// Wait for correct input.
+		int selection;
+		std::cin >> selection;
+		while(std::cin.fail()) {
+		    std::cin.clear();
+		    std::cin.ignore(256,'\n');
+			clearScreen();
+			break;
+		}
+
 		//int selection = 1;
 
 		// Get the player list
@@ -111,13 +122,16 @@ int main() {
 			case 2:
 				{
 					clearScreen();
+					sortPlayersByScore(players);
 					showScoreBoard(players,10U);
 					clearScreen();
 					break;
 				}
 			case 5:
+				return 0;
 			default:
-			return 0;
+				clearScreen();
+				continue;
         };
 	}
 
@@ -127,7 +141,18 @@ int main() {
 		DisplayCurrentPlayer(thisPlayer);
 
 		// Display Main Menu
-		int selection = DisplayMainMenu();
+		DisplayMainMenu();
+
+		// Wait for correct input.
+		int selection;
+		std::cin >> selection;
+		while(std::cin.fail()) {
+		    std::cin.clear();
+		    std::cin.ignore(256,'\n');
+			clearScreen();
+			break;
+		}
+
 		//int selection = 1;
 
 		// Get the player list
@@ -159,6 +184,7 @@ int main() {
 			case 2:
 				{
 					clearScreen();
+					sortPlayersByScore(players);
 					showScoreBoard(players,10U);
 					clearScreen();
 					break;
@@ -170,8 +196,9 @@ int main() {
 					break;
 				}
 			case 5:
+				return 0;
 			default:
-			return 0;
+				continue;
         };
 	}
 	return 0;
@@ -181,6 +208,8 @@ void startGame(Player &p)
 {
 	/* initialize random seed: */
     srand (time(NULL));
+
+	std::cout << std::fixed << std::setprecision(1); // set precision of float to 1 digit
 
 	steady_clock sc;
 	int firstNum, secondNum, addition;
@@ -229,6 +258,11 @@ void startGame(Player &p)
 				}
 				auto start = sc.now();     // start timer
 				std::cin >> answer;  // wait for answer
+				while(std::cin.fail()) {
+					std::cin.clear();
+					std::cin.ignore(256,'\n');
+					std::cin >> answer;  // wait for answer
+				}
 				auto end = sc.now();
 				auto time_span = static_cast<duration<double>>(end - start);   // measure time span between start & end
 				waitTime = time_span.count();
@@ -270,7 +304,7 @@ void startGame(Player &p)
 	return;
 }
 
-int DisplayMainMenu()
+void DisplayMainMenu()
 {
 	std::cout << "                                               " << std::endl;
 	std::cout << "    ###########################################" << std::endl;
@@ -283,16 +317,13 @@ int DisplayMainMenu()
     std::cout << "      5. Exit" << std::endl;
     std::cout << "    ###########################################" << std::endl;
     std::cout << "    Enter your Selection: ";
-    int m = -1;
-    std::cin >> m;
-    return m;
 }
 
-int DisplayFirstMenu()
+void DisplayFirstMenu()
 {
 	std::cout << "                                               " << std::endl;
 	std::cout << "    ###########################################" << std::endl;
-    std::cout << "        Welcome to Tovas Math Challenge        " << std::endl;
+    std::cout << "        Welcome to Math Challenge              " << std::endl;
     std::cout << "    ###########################################" << std::endl;
     std::cout << "      1. Set player" << std::endl;
     std::cout << "      2. See the highscores" << std::endl;
@@ -300,9 +331,6 @@ int DisplayFirstMenu()
     std::cout << "      5. Exit" << std::endl;
     std::cout << "    ###########################################" << std::endl;
     std::cout << "    Enter your Selection: ";
-    int m = -1;
-    std::cin >> m;
-    return m;
 }
 
 void DisplayCurrentPlayer(Player &p)
@@ -320,16 +348,20 @@ void DisplayCurrentPlayer(Player &p)
 
 void gameHeader()
 {
-	std::cout << "\n    ===============================\n";
-	std::cout << "       This is Tovas Math Challenge";
-	std::cout << "\n    ===============================\n";
+	std::cout << "                                               " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+	std::cout << "        Math Challenge                         " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+	std::cout << "                                               " << std::endl;
 }
 
 void leaderBoardHeader()
 {
-	std::cout << "\n    ==============================\n";
-	std::cout << "            TOP 10 SCORE BOARD";
-	std::cout << "\n    ==============================\n";
+	std::cout << "                                               " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+	std::cout << "        TOP 10 SCORE BOARD                     " << std::endl;
+	std::cout << "    ###########################################" << std::endl;
+	std::cout << "                                               " << std::endl;
 }
 
 void wait_on_enter()
@@ -402,21 +434,42 @@ int ageSelector(int age)
 
 std::vector<Player> readPlayersToVec()
 {
-	// Open the File
+	// Open the source CSV file
     std::ifstream in("players.txt");
 
-	std::vector<Player> players;
+    // Here we will store all players that we read
+    std::vector<Player> players{};
 
-	while (in.good()) {
-        Player temp;
-		in >> temp.pID;
-		in >> temp.pName;
-		in >> temp.pAge;
-		in >> temp.pScore;
-        if (temp.pName != "" && temp.pAge != "")
-    	    players.push_back(temp);
-	}
-    in.close();
+    // We will read a complete line and store it here
+    std::string line{};
+
+    // Read all lines of the source CSV file
+    while (std::getline(in, line)) {
+
+        // Now we read a complete line into our std::string line
+        // Put it into a std::istringstream to be able to extract it with iostream functions
+        std::istringstream iss(line);
+
+        // We will use a vector to store the substrings
+        std::string substring{};
+        std::vector<std::string> substrings{};
+
+        // Now, in a loop, get the substrings from the std::istringstream
+        while (std::getline(iss, substring, ',')) {
+
+            // Add the substring to the std::vector
+            substrings.push_back(substring);
+        }
+        // Now store the data for one player in a Player struct
+        Player player{};
+        player.pID = substrings[0];
+        player.pName = substrings[1];
+        player.pAge = substrings[2];
+        player.pScore = substrings[3];
+
+        // Add this new player to our player list
+        players.push_back(player);
+    }
 	return players;
 }
 
@@ -450,9 +503,7 @@ void sortPlayersById(std::vector<Player> &pv)
 
 void showScoreBoard(std::vector<Player> &pv, int nums)
 {
-
-	sortPlayersByScore(pv);
-
+	std::cout << std::fixed << std::setprecision(2); // set precision of float to 1 digit
 	int playerVecSize = pv.size();
 	int iter = 0;
 	iter = std::min(playerVecSize, nums);
@@ -462,7 +513,7 @@ void showScoreBoard(std::vector<Player> &pv, int nums)
 	{
 		for (int i=0; i<iter; i++)
 		{
-			std::cout << "    " << pv[i].pName << " " << pv[i].pScore << std::endl;
+			std::cout << "        " << std::to_string(i+1) << ":    " << pv[i].pName << "    " << pv[i].pScore << std::endl;
 		}
 	}
 	std::cin.clear();

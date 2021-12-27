@@ -22,7 +22,7 @@ class Player
 	*/
 	friend std::ostream & operator << (std::ostream &out, const Player & obj)
 	{
-		out << obj.pID << " " << obj.pName << " " << obj.pAge << " " << obj.pScore << std::endl;
+		out << obj.pID << "," << obj.pName << "," << obj.pAge << "," << obj.pScore << std::endl;
 		return out;
 	}
 	/*
