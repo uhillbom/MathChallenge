@@ -1,3 +1,6 @@
+#ifndef PLAYER_H
+#define PLAYER_H
+
 #include <string>
 #include <vector>
 #include <ostream>
@@ -74,3 +77,4 @@ class Player
 	bool validateString(const std::string& s);
 
 };
+#endif
