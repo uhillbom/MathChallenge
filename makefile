@@ -1,10 +1,10 @@
-#Makefile for "TovasMathChallange" C++ application
+#Makefile for "MathChallange" C++ application
 #Created by Ulf Hillbom
 
 BINDIR = bin
 OBJSDIR = obj
 SRCDIR = src
-PROG = TovasMathChallange
+PROG = MatchChallange
 PROGDIR = $(BINDIR)/$(PROG)
 
 CC = g++
